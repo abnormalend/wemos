@@ -2,6 +2,8 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <ESP8266SSDP.h>
+
 
 #define PIN_RELAY         D1
 #define PIN_SENSOR        D2
@@ -117,6 +119,7 @@ void handleOpen() {
     doorDelay = millis();
   }else{
     server.send(200, "application/json", statusJson("Nothing to do, door already open"));
+      Serial.println("Nothing to do, door already open");
   }
 }
 
@@ -129,7 +132,12 @@ void handleClose() {
   doorDelay = millis();
   }else{
     server.send(200, "application/json", statusJson("Nothing to do, door already closed"));
+    Serial.println("Nothing to do, door already closed");
   }
+}
+
+void handleReboot() {
+ // ESP.restart();
 }
 
 void handleNotFound(){
@@ -172,12 +180,30 @@ void setup(void){
   server.on("/", handleRoot);
   server.on("/status", handleStatus);
   server.on("/open", handleOpen);
+  server.on("/on", handleOpen);
   server.on("/close", handleClose);
-  
+  server.on("/off", handleClose);
+  server.on("/reboot", handleReboot);
+  server.on("/description.xml", HTTP_GET, [](){
+      SSDP.schema(server.client());
+    });
   server.onNotFound(handleNotFound);
 
   server.begin();
   Serial.println("HTTP server started");
+
+  Serial.printf("Starting SSDP...\n");
+    SSDP.setSchemaURL("description.xml");
+    SSDP.setHTTPPort(80);
+    SSDP.setName("ESP8266 Garage Door Opener");
+    SSDP.setSerialNumber("000008675309");
+    SSDP.setURL("/");
+    SSDP.setModelName("Sonoff Wifi Switch");
+    SSDP.setModelNumber("000000000001");
+    SSDP.setModelURL("http://www.meethue.com");
+    SSDP.setManufacturer("Me!");
+    SSDP.setManufacturerURL("http://www.reddit.com/r/the_donald");
+SSDP.begin();
 }
 
 void loop(void){
