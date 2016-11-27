@@ -44,9 +44,9 @@ metadata {
 		multiAttributeTile(name:"door", type: "generic", width: 6, height: 4, canChangeIcon: true){
 			tileAttribute ("device.door", key: "PRIMARY_CONTROL") {
 				attributeState "Open", label:'${name}', action:"door.close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open", nextState:"Opening"
-				attributeState "Closed", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"turningOn"
-				attributeState "Opening", label:'${name}', action:"door.close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open"
-				attributeState "Closing", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed
+				attributeState "Closed", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"Closing"
+				attributeState "Opening", label:'${name}', action:"door.close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open", nextState:"Closing"
+				attributeState "Closing", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"Opening"
 			}
         }
 
