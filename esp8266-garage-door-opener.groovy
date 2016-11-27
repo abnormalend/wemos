@@ -22,11 +22,15 @@ import groovy.util.XmlSlurper
 metadata {
 	definition (name: "ESP8266 Garage Door Opener", namespace: "abnormalend", author: "Brent Rogers (based on Eric Maycock)") {
         capability "Actuator"
-		capability "Switch"
+		// capability "Switch"
 		capability "Refresh"
 		capability "Sensor"
+		capability "Garage Door Control"
+		capability "Door Control"
         capability "Configuration"
         
+        command "door_open"
+        command "door_close"
         command "reboot"
 	}
 
@@ -41,13 +45,11 @@ metadata {
 	}
 
 	tiles (scale: 2){      
-		multiAttributeTile(name:"door", type: "generic", width: 6, height: 4, canChangeIcon: true){
-			tileAttribute ("device.door", key: "PRIMARY_CONTROL") {
-				attributeState "Open", label:'${name}', action:"door.close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open", nextState:"Opening"
-				attributeState "Closed", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"Closing"
-				attributeState "Opening", label:'${name}', action:"door.close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open", nextState:"Closing"
-				attributeState "Closing", label:'${name}', action:"door.open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"Opening"
-			}
+		standardTile("door", "device.door", width: 6, height: 4, canChangeIcon: true, canChangeBackground: true, decoration: "flat"){
+				state "open", label:'${name}', action:"door_close", backgroundColor:"#79b821", icon: "st.doors.garage.garage-open", nextState:"Opening"
+				state "closed", label:'${name}', action:"door_open", backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed", nextState:"Closing"
+				state "opening", label:'${name}', backgroundColor:"#79b821", icon: "st.doors.garage.garage-open"
+                state "closing", label:'${name}', backgroundColor:"#ffffff", icon: "st.doors.garage.garage-closed"
         }
 
 		standardTile("refresh", "device.switch", inactiveLabel: false, decoration: "flat", width: 2, height: 2) {
@@ -65,8 +67,8 @@ metadata {
         
     }
 
-	main(["switch"])
-	details(["switch",
+	main(["door"])
+	details(["door",
              "refresh","configure","reboot",
              "hubInfo"])
 }
@@ -96,12 +98,12 @@ def configureInstant(ip, port, pos){
 }
 
 def parse(description) {
-	//log.debug "Parsing: ${description}"
+	log.debug "Parsing: ${description}"
     def events = []
     def cmds
     def descMap = parseDescriptionAsMap(description)
     def body
-    //log.debug "descMap: ${descMap}"
+    log.debug "descMap: ${descMap}"
 
     if (!state.mac || state.mac != descMap["mac"]) {
 		log.debug "Mac address of device found ${descMap["mac"]}"
@@ -117,21 +119,23 @@ def parse(description) {
     def slurper = new JsonSlurper()
     def result = slurper.parseText(body)
     
-    //log.debug "result: ${result}"
+    log.debug "result: ${result}"
     
     if (result.containsKey("Sensors")) {
         def mySwitch = result.Sensors.find { it.TaskName == "SWITCH" }
         def myButton = result.Sensors.find { it.TaskName == "BUTTON" }
+        def myDoor = result.Sensors.find  { it.TaskName == "DOOR" }
         def myLED = result.Sensors.find { it.TaskName == "LED" }
         if (mySwitch) { 
-            events << createEvent(name:"switch", value: (mySwitch.Switch.toInteger() == 0 ? 'off' : 'on'))
+            events << createEvent(name:"switch", value: (mySwitch.Switch.toInteger() == 0 ? 'closed' : 'open'))
             state.switchConfigured = true
         }
         if (myButton) state.buttonConfigured = true
         //if (myLED) log.debug "LED is ${(myLED.Switch.toInteger() == 0 ? 'off' : 'on')}"
     }
-    if (result.containsKey("pin")) {
-        if (result.pin == 12) events << createEvent(name:"switch", value: (result.state.toInteger() == 0 ? 'off' : 'on'))
+    if (result.containsKey("door")) {
+    log.debug "found door"
+        events << createEvent(name: "door", value: result.door)
     }
     if (result.containsKey("power")) {
         events << createEvent(name: "switch", value: result.power)
@@ -143,7 +147,7 @@ def parse(description) {
         state.uptime = result.uptime
     }
     } else {
-        //log.debug "Response is not JSON: $body"
+        log.debug "Response is not JSON: $body"
     }
     } else {
         cmds = refresh()
@@ -181,14 +185,14 @@ def parseDescriptionAsMap(description) {
 }
 
 
-def open() {
+def door_open() {
 	log.debug "open()"
     def cmds = []
     cmds << getAction("/open")
     return cmds
 }
 
-def close() {
+def door_close() {
     log.debug "close()"
 	def cmds = []
     cmds << getAction("/close")
