@@ -45,8 +45,8 @@ metadata {
 			tileAttribute ("device.switch", key: "PRIMARY_CONTROL") {
 				attributeState "open", label:'${name}', action:"switch.close", backgroundColor:"#79b821", icon: "st.switches.switch.on", nextState:"turningOff"
 				attributeState "closed", label:'${name}', action:"switch.open", backgroundColor:"#ffffff", icon: "st.switches.switch.off", nextState:"turningOn"
-				attributeState "Opening", label:'${name}', action:"switch.off", backgroundColor:"#79b821", icon: "st.switches.switch.off", nextState:"turningOff"
-				attributeState "Closing", label:'${name}', action:"switch.on", backgroundColor:"#ffffff", icon: "st.switches.switch.on", nextState:"turningOn"
+				attributeState "Opening", label:'${name}', action:"switch.close", backgroundColor:"#79b821", icon: "st.switches.switch.off", nextState:"turningOff"
+				attributeState "Closing", label:'${name}', action:"switch.open", backgroundColor:"#ffffff", icon: "st.switches.switch.on", nextState:"turningOn"
 			}
         }
 
