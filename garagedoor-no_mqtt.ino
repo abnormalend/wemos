@@ -16,11 +16,17 @@ const char* password = ".....";
 const String statusJson1 = "{\"door\":\"";
 const String statusJson2 = "\", \"uptime\":\"";
 const String statusJson3 = "\"}";
+const String hubIP = "192.168.1.127";
 unsigned long openerEvent = 0;
 unsigned long doorCheckEvent = 0;
 char* doorState = "unknown";
 int door = -1;
 int doorDelay = 0;
+
+
+// Smartthings hub information
+IPAddress hubIp(192,168,1,127); // smartthings hub ip
+const unsigned int hubPort = 39500; // smartthings hub port
 
 //************************** Just Some basic Definitions used for the Up Time LOgger ************//
 long Day = 0;
@@ -78,7 +84,10 @@ String upTimeString () {
   return formattedUptime;
 }
 void handleRoot() {
-  server.send(200, "text/plain", "this is a garage door!");
+  String addy = server.client().remoteIP().toString();
+  if (addy == hubIP) {
+    server.send(200, "text/plain", "this is a garage door!");
+  } else { freakOut();}
 }
 
 void pressGarageButton() {
@@ -92,48 +101,94 @@ void checkDoor() {
   if (doorTemp != door)
   {
     door = doorTemp;
-    if (door == LOW){ doorState = "closed";}
-    else { doorState = "open"; } 
+    if (door == LOW){ doorState = "closed";sendNotify();}
+    else { doorState = "open"; sendNotify();} 
     Serial.println("Door is now " + String(doorState));
   }
   
+}
+
+void freakOut() {
+  // handleNotFound();
+  Serial.println("Access from device other than Hub Detected.  Shutting down");
+  ESP.deepSleep(0);
 }
 
 String statusJson(String doorStatus){
   String statusJson = statusJson1 + doorStatus + statusJson2 + upTimeString() + statusJson3;
   return statusJson;
 }
+
+void sendJSONData(WiFiClient client) {
+  String jsonbody = statusJson(doorState);
+  Serial.println("sendJSONData");
+  client.println(F("CONTENT-TYPE: application/json"));
+  client.print(F("CONTENT-LENGTH: "));
+  client.print(jsonbody.length());
+  client.println();
+  client.print(jsonbody);
+  client.println();
+  
+}
+
+// send data
+int sendNotify() //client function to send/receieve POST data.
+{
+  WiFiClient client;
+  int returnStatus = 1;
+  if (client.connect(hubIp, hubPort)) {
+    client.println(F("POST / HTTP/1.1"));
+    client.print(F("HOST: "));
+    client.print(hubIp);
+    client.print(F(":"));
+    client.println(hubPort);
+    sendJSONData(client);
+  }
+  else {
+    //connection failed
+    Serial.println("failed to connect when sending JSON notify");
+    returnStatus = 0;
+}
+}
 void handleStatus() {
-  // String statusJson = statusJson1 + doorState + statusJson2 + upTimeString() + statusJson3;
-  server.send(200, "application/json", statusJson(doorState));
-  Serial.println("Returning Status page");
+  String addy = server.client().remoteIP().toString();
+  if (addy == hubIP) {
+    server.send(200, "application/json", statusJson(doorState));
+    Serial.println("Returning Status page");
+  } else { freakOut();}
 }
 
 
 void handleOpen() {
-  if ( digitalRead(PIN_SENSOR) != HIGH ) {
-    pressGarageButton();
-    server.send(200, "application/json", statusJson("opening"));
-    door = -1;
-    doorState = "opening";
-    doorDelay = millis();
-  }else{
-    server.send(200, "application/json", statusJson("Nothing to do, door already open"));
-      Serial.println("Nothing to do, door already open");
-  }
+  String addy = server.client().remoteIP().toString();
+  if (addy == hubIP) {
+    if ( digitalRead(PIN_SENSOR) != HIGH ) {
+      pressGarageButton();
+      server.send(200, "application/json", statusJson("opening"));
+      door = -1;
+      doorState = "opening";
+      doorDelay = millis();
+    }else{
+      server.send(200, "application/json", statusJson("Nothing to do, door already open"));
+        Serial.println("Nothing to do, door already open");
+    }
+  } else { freakOut();}
 }
 
 void handleClose() {
-  if ( digitalRead(PIN_SENSOR) != LOW ) {
-  pressGarageButton();
-  server.send(200, "application/json", statusJson("closing"));
-  door = -1;
-  doorState = "closing";
-  doorDelay = millis();
-  }else{
-    server.send(200, "application/json", statusJson("Nothing to do, door already closed"));
-    Serial.println("Nothing to do, door already closed");
-  }
+  String addy = server.client().remoteIP().toString();
+  if (addy == hubIP) {
+    if ( digitalRead(PIN_SENSOR) != LOW ) {
+    pressGarageButton();
+    server.send(200, "application/json", statusJson("closing"));
+    door = -1;
+    doorState = "closing";
+    doorDelay = millis();
+    }else{
+      server.send(200, "application/json", statusJson("Nothing to do, door already closed"));
+      Serial.println("Nothing to do, door already closed");
+    }
+  } else { freakOut();}
 }
 
 void handleReboot() {
