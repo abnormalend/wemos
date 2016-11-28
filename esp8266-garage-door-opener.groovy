@@ -25,6 +25,7 @@ metadata {
 		// capability "Switch"
 		capability "Refresh"
 		capability "Sensor"
+        capability "Polling"
 		capability "Garage Door Control"
 		capability "Door Control"
         capability "Configuration"
@@ -201,6 +202,11 @@ def door_close() {
 
 def refresh() {
 	log.debug "refresh()"
+    poll()
+}
+
+def poll() {
+	log.debug "poll()"
     def cmds = []
     cmds << getAction("/status")
     return cmds
