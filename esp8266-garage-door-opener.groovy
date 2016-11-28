@@ -1,5 +1,5 @@
 /**
- *  Copyright 2016 Eric Maycock
+ *  Copyright 2016 Brent Rogers (based on Sonoff Switch handler by Eric Maycock)
  *
  *  Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  *  in compliance with the License. You may obtain a copy of the License at:
@@ -12,8 +12,8 @@
  *
  *  Sonoff Wifi Switch
  *
- *  Author: Eric Maycock (erocm123)
- *  Date: 2016-06-02
+ *  Author: Brent Rogers (github.com/abnormalend)
+ *  Date: 2016-11-27
  */
  
 import groovy.json.JsonSlurper
